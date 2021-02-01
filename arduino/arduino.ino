@@ -3,6 +3,10 @@
 // başla butonu
 #define btnstart A0
 
+// fan
+#define fan 7
+#define fanters 8
+
 // alarm ledleri
 #define yecled A15
 #define yphled A14
@@ -36,7 +40,7 @@ void lcdYaz(String text)
   lcd.print(text);
 }
 
-int phdata, ecdata, nitratdata, sodyumdata, kalsiyumdata;
+int phdata, ecdata, nitratdata, sodyumdata, kalsiyumdata, nemdata;
 bool kontrol = true;
 
 void getPHData()
@@ -88,7 +92,7 @@ void getECData()
   }
   Serial.print("EC degeri: ");
   Serial.println(ecdata);
-  Serial.print("EC durumu: ");  
+  Serial.print("EC durumu: ");
   if (ecdata < 30 && ecdata < 20)
   {
     Serial.println("Normal");
@@ -211,12 +215,59 @@ void getKalsiyumData()
   }
 }
 
+void getNemData()
+{
+  lcdYaz("Nem verisi bekleniyor");
+  nemdata = Serial.parseInt();
+  delay(1000);
+  while (nemdata == 0)
+  {
+    lcdYaz("Tekrar Nem");
+    nemdata = Serial.parseInt();
+    delay(1000);
+  }
+  Serial.print("Nem degeri: ");
+  Serial.println(nemdata);
+  Serial.print("Nem Durumu: ");
+  if (nemdata < 30 && nemdata < 20)
+  {
+    Serial.println("Normal");
+    lcdYaz("NORMAL Nem");
+    // ters fan durdur
+    digitalWrite(fanters, HIGH);
+    // düz fan durdur
+    digitalWrite(fan, LOW);
+    delay(1000);
+  }
+  else if (nemdata > 30)
+  {
+    Serial.println("Yuksek");
+    lcdYaz("YUKSEK NEM");
+    // ters fan durdur
+    digitalWrite(fanters, HIGH);
+    // düz fan çalıştır
+    digitalWrite(fan, HIGH);
+  }
+  else
+  {
+    Serial.println("Dusuk");
+    lcdYaz("DUSUK NEM");
+    // düz fan durdur
+    digitalWrite(fan, LOW);
+    // ters fan çalıştır
+    digitalWrite(fanters, LOW);
+  }
+}
+
 void setup()
 {
   Serial.begin(9600);
   lcd.begin(16, 2);
 
   pinMode(btnstart, INPUT);
+
+  pinMode(fan, OUTPUT);
+  pinMode(fanters, OUTPUT);
 
   pinMode(yecled, OUTPUT);
   pinMode(yphled, OUTPUT);
@@ -229,6 +280,11 @@ void setup()
   pinMode(dnitratled, OUTPUT);
   pinMode(dsodyumled, OUTPUT);
   pinMode(dkalsiyumled, OUTPUT);
+
+  // ters fan durdur
+  digitalWrite(fanters, HIGH);
+  // düz fan durdur
+  digitalWrite(fan, LOW);
 }
 
 void loop()
@@ -244,8 +300,7 @@ void loop()
     getNitratData();
     getSodyumData();
     getKalsiyumData();
+    getNemData();
   }
-  else
-    lcdYaz("Buton basmadi");
   delay(100);
 }
